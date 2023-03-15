@@ -1,0 +1,15 @@
+[package]
+name = "rocksdb-viewer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+gtk = "0.17"
+
+rocksdb = { version = "0.20", features = [
+    "multi-threaded-cf",
+    "zstd",
+    "lz4",
+    "jemalloc",
+], default-features = false }
