@@ -80,6 +80,12 @@ impl Window {
             }),
         );
 
+        shared_state.db_page_view.cf_list.connect_cf_selected(
+            glib::clone!(@weak shared_state => move |cf_name| {
+                shared_state.open_cf(cf_name);
+            }),
+        );
+
         shared_state.window.show_all();
 
         if let Some(path) = initial_path {
@@ -108,7 +114,7 @@ impl WindowState {
         let opened_db = match controller::Db::open(path) {
             Ok(db) => db,
             Err(e) => {
-                ui::error_dialog(&self.window, &format!("{e:?}")).show_all();
+                ui::error_dialog(&self.window, format!("{e:?}")).show_all();
                 return;
             }
         };
@@ -116,12 +122,32 @@ impl WindowState {
         let mut db = self.db.borrow_mut();
         let db = db.insert(opened_db);
 
-        self.db_page_view.cf_list.update_cfs(db.column_families());
+        self.db_page_view.init_for_db(db);
         self.select_page(&self.db_page_view);
     }
 
     fn select_page<T: AsRef<gtk::Box>>(&self, page: &T) {
         self.view_stack.set_visible_child(page.as_ref());
+    }
+
+    fn open_cf(&self, cf_name: &str) {
+        let db = self.db.borrow_mut();
+        let Some(db) = &*db else {
+            return;
+        };
+
+        let cf_handle = match db.get_cf_handle(cf_name) {
+            Ok(handle) => handle,
+            Err(e) => {
+                ui::error_dialog(&self.window, e).show_all();
+                return;
+            }
+        };
+        let iter = db.iter(cf_handle).take(10000);
+        self.db_page_view.cf_view.update(iter);
+        self.db_page_view
+            .main_view
+            .set_visible_child(&self.db_page_view.table_page);
     }
 }
 
@@ -154,23 +180,64 @@ impl AsRef<gtk::Box> for WelcomePageView {
 
 struct DbPageView {
     container: gtk::Box,
+    status_bar: gtk::Statusbar,
     cf_list: ui::CfList,
+    cf_view: ui::CfView,
+    main_view: gtk::Stack,
+    empty_page: gtk::Box,
+    table_page: gtk::ScrolledWindow,
 }
 
 impl DbPageView {
     fn new() -> Self {
         let cf_list = ui::CfList::new();
+        let cf_view = ui::CfView::new();
 
         let paned = gtk::Paned::new(gtk::Orientation::Horizontal);
-        paned.add1(&cf_list.tree_view);
 
-        let main_view = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        cf_list.tree_view.set_width_request(200);
+        paned.add1(cf_list.as_ref());
+        paned.set_child_shrink(&cf_list.tree_view, false);
+
+        let main_view = gtk::Stack::new();
+
+        let empty_page = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let label = gtk::Label::new(Some("Select a column family from the list"));
+        empty_page.pack_start(&label, true, true, 0);
+        main_view.add(&empty_page);
+
+        let table_page = gtk::ScrolledWindow::new(gtk::Adjustment::NONE, gtk::Adjustment::NONE);
+        table_page.set_policy(gtk::PolicyType::Automatic, gtk::PolicyType::Always);
+        table_page.add(cf_view.as_ref());
+        main_view.add(&table_page);
+
         paned.add2(&main_view);
 
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         container.pack_start(&paned, true, true, 0);
 
-        Self { container, cf_list }
+        let status_bar = gtk::Statusbar::new();
+        container.add(&status_bar);
+
+        Self {
+            container,
+            status_bar,
+            cf_list,
+            cf_view,
+            main_view,
+            empty_page,
+            table_page,
+        }
+    }
+
+    fn init_for_db(&self, db: &controller::Db) {
+        self.cf_list.update_cfs(db.column_families());
+        self.set_status_bar_text(format!("Opened DB: {}", db.path().display()));
+    }
+
+    fn set_status_bar_text<T: AsRef<str>>(&self, text: T) {
+        self.status_bar.remove_all(0);
+        self.status_bar.push(0, text.as_ref());
     }
 }
 

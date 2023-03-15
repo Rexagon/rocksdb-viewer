@@ -59,7 +59,7 @@ pub fn folder_dialog<'a, P: IsA<gtk::Window> + 'a, Q: Into<Option<&'a P>>>(
 
 pub fn error_dialog<'a, P: IsA<gtk::Window> + 'a, Q: Into<Option<&'a P>>>(
     parent: Q,
-    msg: &impl std::fmt::Display,
+    msg: impl std::fmt::Display,
 ) -> gtk::MessageDialog {
     let msg = msg.to_string();
 

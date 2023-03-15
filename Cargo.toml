@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+hex = "0.4"
 gtk = "0.17"
 
 rocksdb = { version = "0.20", features = [
