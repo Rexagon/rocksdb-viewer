@@ -22,6 +22,7 @@ impl App {
 
         res.app.connect_startup(|_| {});
         res.app.connect_activate(Self::on_activate);
+        res.app.connect_open(Self::on_open);
 
         res
     }
@@ -35,8 +36,18 @@ impl App {
     }
 
     fn on_activate(app: &gtk::Application) {
-        let window = window::Window::new(app);
+        let window = window::Window::new(app, None);
         app.add_window(window.as_ref());
+    }
+
+    fn on_open(app: &gtk::Application, files: &[gio::File], _hint: &str) {
+        for file in files {
+            if let Some(path) = file.path() {
+                let window = window::Window::new(app, Some(path));
+                app.add_window(window.as_ref());
+                break;
+            }
+        }
     }
 
     pub fn run(&self) -> ExitCode {

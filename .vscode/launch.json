@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'rocksdb-viewer'",
+      "cargo": {
+        "args": ["build", "--bin=rocksdb-viewer", "--package=rocksdb-viewer"],
+        "filter": {
+          "name": "rocksdb-viewer",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'rocksdb-viewer'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=rocksdb-viewer",
+          "--package=rocksdb-viewer"
+        ],
+        "filter": {
+          "name": "rocksdb-viewer",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

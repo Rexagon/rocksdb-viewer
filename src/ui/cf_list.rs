@@ -23,7 +23,6 @@ impl CfList {
             TreeViewColumnExt::pack_start(&column, &renderer, true);
             column.set_title("Column Family");
             TreeViewColumnExt::add_attribute(&column, &renderer, "text", Columns::Name as i32);
-            column.set_sort_column_id(Columns::Name as i32);
             tree_view.append_column(&column);
         }
 
